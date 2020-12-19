@@ -4,6 +4,7 @@ import random as rd
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto import Random
+#test - esc
 
 def pad(s):
     #return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
