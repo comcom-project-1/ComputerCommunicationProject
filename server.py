@@ -70,7 +70,7 @@ print("Server is running...")
 
 while True:
     try:
-        print(sock.recvfrom(1024))                          # print client ip
+        data, addr = sock.recvfrom(1024)                 # print client ip
         """if status == "Start":
             # Create payload
             length = toByte(len(filename) + len(public_key))
@@ -83,14 +83,15 @@ while True:
             unreliableSend(packet, sock, user, errRate)
             status = "Handshaking"
 
-        else:
+        else:"""
+        if True:                                            # Bypass start state 
             data, user = sock.recvfrom(1024)
-            #print('Received:', data)
+            print('Received:', data)
             if status == "Handshaking":
-                data = rsaDecryptor.decrypt(data)
+                enc = rsaDecryptor.decrypt(data)
                 if data[0] == 0:
                     packetLength = data[1]
-                    sessionKey = data[2:2+packetLength]
+                    sessionKey = rsaDecryptor.encrypt(data[2:2+packetLength])
                     print("sessionKey =", sessionKey, packetLength)
 
                     # ACK segment 00
@@ -140,7 +141,7 @@ while True:
                     exit(0)
                 else:
                     print("SERVER SENT WRONG PACKET")
-                    exit(1)"""
+                    exit(1)
     except Exception as ex:         
         #print(ex)
         if status == "Handshaking" or status == "Ending":
