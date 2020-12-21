@@ -4,8 +4,6 @@ import random as rd
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto import Random
-#test - esc - 2
-#test - esc
 
 def pad(s):
     #return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
@@ -28,8 +26,6 @@ def unreliableSend(packet, sock, user, errRate):
     if errRate < rd.randint(0,100):
         sock.sendto(packet, user)
         
-print(toByte(4),toByte(160), toByte(250))
-print(fromByte(toByte(4)),fromByte(toByte(160)),fromByte(toByte(250)))
 
 HOST = '127.0.0.1'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
@@ -42,6 +38,7 @@ N = 1 # Go-back-N N
 
 filename = b'crime-and-punishment.txt'
 
+"""
 passwd = Random.get_random_bytes(32)                        # AES256 must be 32 bytes
 secretWord = b"This word is secret"                         # The word that will be encrypted.  
 AEScipher = AES.new(passwd, AES.MODE_ECB)                   # Create AES cipher with given key. 
@@ -63,13 +60,18 @@ rsaDecryptor = PKCS1_OAEP.new(privateKey)                   # Which have differe
 enc = rsaEncryptor.encrypt(secretWord)#.encode('utf-8'))
 dec = rsaDecryptor.decrypt(enc)
 print(enc, dec)
+"""
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)     # Create UDP socket
 sock.settimeout(TIMEOUT)                                    # If no packets came after TIMEOUT
                                                             # Then throw exception
+sock.bind(user)
+print("Server is running...")
+
 while True:
     try:
-        if status == "Start":
+        print(sock.recvfrom(1024))                          # print client ip
+        """if status == "Start":
             # Create payload
             length = toByte(len(filename) + len(public_key))
             print(public_key)
@@ -138,7 +140,7 @@ while True:
                     exit(0)
                 else:
                     print("SERVER SENT WRONG PACKET")
-                    exit(1)
+                    exit(1)"""
     except Exception as ex:         
         #print(ex)
         if status == "Handshaking" or status == "Ending":
