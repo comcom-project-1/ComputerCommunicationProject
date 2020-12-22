@@ -37,9 +37,9 @@ TIMEOUT = 0.0001 # Timeout value
 N = 1 # Go-back-N N
 
 filename = b'crime-and-punishment.txt'
-passwd = Random.get_random_bytes(32)                        # AES256 must be 32 bytes
+sessionKey = Random.get_random_bytes(32)                        # AES256 must be 32 bytes
 secretWord = b"This word is secret"                         # The word that will be encrypted.  
-AEScipher = AES.new(passwd, AES.MODE_ECB)                   # Create AES cipher with given key. 
+AEScipher = AES.new(sessionKey, AES.MODE_ECB)                   # Create AES cipher with given key. 
 phrase= AEScipher.encrypt(pad(secretWord))                  # The words that will be encrypted
                                                             # Must have length multiple of 16.
 
@@ -72,10 +72,10 @@ while True:
             recievedPublicKey = data[2+len(filename):2+packetLength]
             recievedPublicKey = RSA.import_key(recievedPublicKey)
             rsaEncryptor = PKCS1_OAEP.new(recievedPublicKey)
-            sessionKey = rsaEncryptor.encrypt(secretWord)
             pType = toByte(0)                                   # Packet type
             length = toByte(len(sessionKey))                    # Payload length
-            packet = pType + length + sessionKey                # Packet
+            packet = rsaEncryptor.encrypt(pType + length + sessionKey)
+            # Packet to send
             unreliableSend(packet, sock, user, errRate)         # Send response to client
 
         elif data[0] == 1:                                      # ACK
