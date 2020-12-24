@@ -61,6 +61,14 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)     # Create UDP socket
 sock.bind(server)
 print("Server is running...")
 
+file = open('crime-and-punishment.txt', encoding="utf-8") 
+Lines = file.readlines()  
+print(Lines[0])
+# count = 0
+# # Strips the newline character 
+# for line in Lines: 
+#     print("Line{}: {}".format(count, line.strip())) 
+
 status = "Handshake"
 
 while True:
@@ -87,7 +95,18 @@ while True:
         status = "ACK"
 
     elif data[0] == 1:                                      # Packet type is ACK
-        sequence = data[1]
+        seqNum = data[1]
+        sendBase = 0
+        next_seqNum = 0
+        while True:
+            if next_seqNum < (sendBase + N):
+                pType = toByte(2)                                   # Packet type
+                length = toByte(len(Lines[next_seqNum]))            # Payload length
+                packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
+                # Packet to send
+                unreliableSend(packet, sock, user, errRate)  
+                next_seqNum += 1
+               
         pass
 
     else:
