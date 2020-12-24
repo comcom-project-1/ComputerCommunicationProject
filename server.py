@@ -1,6 +1,7 @@
 import socket
 import time 
 import random as rd
+from typing import Sequence
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto import Random
@@ -37,9 +38,9 @@ TIMEOUT = 0.0001 # Timeout value
 N = 1 # Go-back-N N
 
 filename = b'crime-and-punishment.txt'
-sessionKey = Random.get_random_bytes(32)                        # AES256 must be 32 bytes
+sessionKey = Random.get_random_bytes(32)                    # AES256 must be 32 bytes
 secretWord = b"This word is secret"                         # The word that will be encrypted.  
-AEScipher = AES.new(sessionKey, AES.MODE_ECB)                   # Create AES cipher with given key. 
+AEScipher = AES.new(sessionKey, AES.MODE_ECB)               # Create AES cipher with given key. 
 phrase= AEScipher.encrypt(pad(secretWord))                  # The words that will be encrypted
                                                             # Must have length multiple of 16.
 
@@ -60,32 +61,34 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)     # Create UDP socket
 sock.bind(server)
 print("Server is running...")
 
+status = "Handshake"
+
 while True:
-        data, user = sock.recvfrom(1024)
-        print('Received:', data)
+    data, user = sock.recvfrom(1024)
 
-        if data[0] == 0:                                        # Handshake
-            packetLength = data[1]
-            recievedFileName = data[2:2+len(filename)]
-            if(recievedFileName != filename):
-                sock.settimeout()
-            recievedPublicKey = data[2+len(filename):2+packetLength]
-            recievedPublicKey = RSA.import_key(recievedPublicKey)
-            rsaEncryptor = PKCS1_OAEP.new(recievedPublicKey)
-            pType = toByte(0)                                   # Packet type
-            length = toByte(len(sessionKey))                    # Payload length
-            packet = rsaEncryptor.encrypt(pType + length + sessionKey)
-            # Packet to send
-            unreliableSend(packet, sock, user, errRate)         # Send response to client
+    if status == "ACK":
+        data = AEScipher.decrypt(data)
 
-        elif data[0] == 1:                                      # ACK
-            pass
+    print('Received:', data)
+    
+    if data[0] == 0:                                        # Packet type is Handshake
+        packetLength = data[1]
+        recievedFileName = data[2:2+len(filename)]
+        if(recievedFileName != filename):                   # Check if the file name is correct
+            sock.settimeout()
+        recievedPublicKey = data[2+len(filename):2+packetLength]
+        recievedPublicKey = RSA.import_key(recievedPublicKey)
+        rsaEncryptor = PKCS1_OAEP.new(recievedPublicKey)
+        pType = toByte(0)                                   # Packet type
+        length = toByte(len(sessionKey))                    # Payload length
+        packet = rsaEncryptor.encrypt(pType + length + sessionKey)
+        # Packet to send
+        unreliableSend(packet, sock, user, errRate)         # Send response to client
+        status = "ACK"
 
-        elif data[0] == 2:                                      # DATA
-            pass
+    elif data[0] == 1:                                      # Packet type is ACK
+        sequence = data[1]
+        pass
 
-        elif data[0] == 3:                                      # FIN
-            pass
-
-        else:
-            print("CLIENT SENT WRONG PACKET")
+    else:
+        print("CLIENT SENT WRONG PACKET")
