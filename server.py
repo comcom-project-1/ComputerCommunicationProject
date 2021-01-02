@@ -37,6 +37,7 @@ errRate = 10 # Average Error rate of the unreliable channel
 TIMEOUT = 0.0001 # Timeout value
 N = 1 # Go-back-N N
 
+
 filename = b'crime-and-punishment.txt'
 sessionKey = Random.get_random_bytes(32)                    # AES256 must be 32 bytes
 secretWord = b"This word is secret"                         # The word that will be encrypted.  
@@ -62,8 +63,11 @@ sock.bind(server)
 print("Server is running...")
 
 file = open('crime-and-punishment.txt', encoding="utf-8") 
-Lines = file.readlines()  
+Lines = file.readlines()
+numberOfPacket = len(Lines)  
 print(Lines[0])
+
+file.close()
 # count = 0
 # # Strips the newline character 
 # for line in Lines: 
@@ -73,9 +77,12 @@ status = "Handshake"
 
 while True:
     data, user = sock.recvfrom(1024)
-
+    
+    
     if status == "ACK":
+        
         data = AEScipher.decrypt(data)
+        data = unpad(data)
 
     print('Received:', data)
     
@@ -96,17 +103,23 @@ while True:
 
     elif data[0] == 1:                                      # Packet type is ACK
         seqNum = data[1]
+        print( "seq number, ",seqNum)
         sendBase = 0
         next_seqNum = 0
         while True:
             if next_seqNum < (sendBase + N):
                 pType = toByte(2)                                   # Packet type
                 length = toByte(len(Lines[next_seqNum]))            # Payload length
-                packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
+                payload = (Lines[next_seqNum]).encode()
+                
+                packet = toByte(2) + length + toByte(seqNum) + payload
+                # packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
+                packet = pad(packet)
+                packet = AEScipher.encrypt(packet)
                 # Packet to send
                 unreliableSend(packet, sock, user, errRate)  
                 next_seqNum += 1
-               
+                
         pass
 
     else:
