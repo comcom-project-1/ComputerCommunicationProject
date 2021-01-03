@@ -67,25 +67,19 @@ Lines = file.readlines()
 numberOfPacket = len(Lines)  
 print(Lines[0])
 
-file.close()
+
 # count = 0
 # # Strips the newline character 
 # for line in Lines: 
 #     print("Line{}: {}".format(count, line.strip())) 
 
 status = "Handshake"
-
+sendBase = 0
 while True:
     data, user = sock.recvfrom(1024)
-    
-    
-    if status == "ACK":
-        
+    if status == "ACK": 
         data = AEScipher.decrypt(data)
         data = unpad(data)
-        # packetType = data[0]
-        # ACKseqNum = data[1]
-
     print('Received:', data)
     
     if data[0] == 0:                                        # Packet type is Handshake
@@ -102,39 +96,37 @@ while True:
         # Packet to send
         unreliableSend(packet, sock, user, errRate)         # Send response to client
         status = "ACK"
-
-    elif data[0] == 1:                                      # Packet type is ACK
-        seqNum = data[1]
-        
-        sendBase = 0
-        # next_seqNum = 0
-        while True:
-            if seqNum < (sendBase + N):
-                print("window sendbase, ",sendBase)
-                pType = toByte(2)                                   # Packet type
-                length = toByte(len(Lines[seqNum]))            # Payload length
-                payload = (Lines[seqNum]).encode()
-                
-                packet = toByte(2) + length + toByte(seqNum) + payload
-                # packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
-                packet = pad(packet)
-                packet = AEScipher.encrypt(packet)
-                # Packet to send
-                unreliableSend(packet, sock, user, errRate)  
-                seqNum += 1
-                print('Received:', data)
-                # print("is ack number, ",data[1])  
-                print( "seq number, ",seqNum)
-            if seqNum == sendBase:
-                sendBase += 1
-            #     if sendBase == seqNum:
-            #         print("timer should be stopped")
-            #         sock.settimeout()
-            #     else:
-            #         print("timer should be started")
-            # if timeout():
-            #     print("start timer")
-                
+       
+    elif data[0] == 1:                                      # Packet type is ACK  
+        seqNum = data[1] 
+        # next_seqNum = 0 
+        if seqNum < (sendBase + N):
+            print("window sendbase, ",sendBase)
+            pType = toByte(2)                                   # Packet type
+            length = toByte(len(Lines[seqNum]))            # Payload length
+            payload = (Lines[seqNum]).encode()
+            
+            packet = toByte(2) + length + toByte(seqNum) + payload
+            # packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
+            packet = pad(packet)
+            packet = AEScipher.encrypt(packet)
+            # Packet to send
+            unreliableSend(packet, sock, user, errRate)  
+            seqNum += 1
+            print('Received:', data)
+            # print("is ack number, ",data[1])  
+            print( "seq number, ",seqNum)
+        if seqNum == sendBase:
+            sendBase += 1
+            print("zaa window sendbase, ",sendBase)
+        #     if sendBase == seqNum:
+        #         print("timer should be stopped")
+        #         sock.settimeout()
+        #     else:
+        #         print("timer should be started")
+        # if timeout():
+        #     print("start timer")
+            
                 
 
         pass
