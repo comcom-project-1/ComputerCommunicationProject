@@ -74,7 +74,7 @@ file.close()
 #     print("Line{}: {}".format(count, line.strip())) 
 
 status = "Handshake"
-
+sendBase = 0
 while True:
     data, user = sock.recvfrom(1024)
     
@@ -104,29 +104,36 @@ while True:
         status = "ACK"
 
     elif data[0] == 1:                                      # Packet type is ACK
+        # data = AEScipher.decrypt(data)
+        # data = unpad(data)
+        # packetType = data[0]
+        # ACKseqNum = data[1]
         seqNum = data[1]
         
-        sendBase = 0
         # next_seqNum = 0
         while True:
             if seqNum < (sendBase + N):
-                print("window sendbase, ",sendBase)
+                
                 pType = toByte(2)                                   # Packet type
                 length = toByte(len(Lines[seqNum]))            # Payload length
                 payload = (Lines[seqNum]).encode()
-                
+                print("sent to client: ", seqNum, " ", Lines[seqNum])
                 packet = toByte(2) + length + toByte(seqNum) + payload
                 # packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
                 packet = pad(packet)
                 packet = AEScipher.encrypt(packet)
                 # Packet to send
                 unreliableSend(packet, sock, user, errRate)  
-                seqNum += 1
+                seqNum = (seqNum + 1) % 256
                 print('Received:', data)
                 # print("is ack number, ",data[1])  
                 print( "seq number, ",seqNum)
-            if seqNum == sendBase:
+                print("window sendbase, ",sendBase)
+            if seqNum-1 == sendBase:
                 sendBase += 1
+                
+            # if seqNum == sendBase:
+            #     sendBase += 1
             #     if sendBase == seqNum:
             #         print("timer should be stopped")
             #         sock.settimeout()
