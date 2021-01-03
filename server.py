@@ -74,16 +74,19 @@ file.close()
 #     print("Line{}: {}".format(count, line.strip())) 
 
 status = "Handshake"
-sendBase = 0
-count = -1
+
+lineNum = 0
+
+
 while True:
     data, user = sock.recvfrom(1024)
-    
-    
+    sendBase = 0
+    count = -1
     if status == "ACK":
         
         data = AEScipher.decrypt(data)
         data = unpad(data)
+        
         # packetType = data[0]
         # ACKseqNum = data[1]
 
@@ -106,8 +109,9 @@ while True:
 
     elif data[0] == 1:                                      # Packet type is ACK
         seqNum = data[1]                                #changes between 0 and 255
-        print("seqnum data[1] = ",seqNum)
+        print("ı got a seq num, ", seqNum)
         
+        # seqNum = 0
         # next_seqNum = 0
         while True:
             # if seqNum == 0:
@@ -115,13 +119,20 @@ while True:
             if seqNum < (sendBase + N):
                 
                 pType = toByte(2)                                   # Packet type
+                # if seqNum == 0:
+                #     count += 1
+                    # count += int((seqNum + 1) / 256)
+                if (count * 256) + seqNum == numberOfPacket:
+                    print("whyyy")
+                    break
                 if seqNum == 0:
                     count += 1
-                    # count += int((seqNum + 1) / 256)
+                    print("count is increased by one, ", count)
+                
                 # lines[seqnum] is starting from the beginning after seqnum gets 0 after 255
-                length = toByte(len(Lines[seqNum]))            # Payload length 
-                payload = (Lines[seqNum]).encode()
-                print("sent to client: ", seqNum, " ", Lines[seqNum])
+                length = toByte(len(Lines[(count * 256) + seqNum]))            # Payload length 
+                payload = (Lines[(count * 256) + seqNum]).encode()
+                print("sent to client: ", seqNum, " ", (count * 256) + seqNum, " ", Lines[(count * 256) + seqNum])
                 packet = toByte(2) + length + toByte(seqNum) + payload
                 # packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
                 packet = pad(packet)
@@ -129,21 +140,18 @@ while True:
                 # Packet to send
                 unreliableSend(packet, sock, user, errRate)  
                 seqNum = (seqNum + 1) % 256
-                
                 # seqNum += 1
+                lineNum += 1
                 
-                print("count, ", count)
-                # print("is ack number, ",data[1])  
-                print( "seq number, ",seqNum)
-                print("window sendbase, ",sendBase)
-            if seqNum-1 == numberOfPacket:
-                break 
+            # if seqNum-1 == numberOfPacket:
+            #     break 
             # if (seqNum - 1) % 256 == 0:
             #     count += 1
-            if seqNum-1 == sendBase:
-                sendBase = (sendBase + 1) % 256
+            if seqNum == sendBase:
+                # sendBase = (sendBase + 1) % 256
                 # sendBase = (count*256) + sendBase
-                # sendBase += 1
+                sendBase += 1
+                print("base is increased by one, ", sendBase)
               
             # if seqNum == sendBase:
             #     sendBase += 1
