@@ -35,7 +35,7 @@ status = "Start"
 
 errRate = 10 # Average Error rate of the unreliable channel
 TIMEOUT = 0.0001 # Timeout value
-N = 1 # Go-back-N N
+N = 10 # Go-back-N N
 
 
 filename = b'crime-and-punishment.txt'
@@ -83,6 +83,8 @@ while True:
         
         data = AEScipher.decrypt(data)
         data = unpad(data)
+        # packetType = data[0]
+        # ACKseqNum = data[1]
 
     print('Received:', data)
     
@@ -103,14 +105,15 @@ while True:
 
     elif data[0] == 1:                                      # Packet type is ACK
         seqNum = data[1]
-        print( "seq number, ",seqNum)
+        
         sendBase = 0
-        next_seqNum = 0
+        # next_seqNum = 0
         while True:
-            if next_seqNum < (sendBase + N):
+            if seqNum < (sendBase + N):
+                print("window sendbase, ",sendBase)
                 pType = toByte(2)                                   # Packet type
-                length = toByte(len(Lines[next_seqNum]))            # Payload length
-                payload = (Lines[next_seqNum]).encode()
+                length = toByte(len(Lines[seqNum]))            # Payload length
+                payload = (Lines[seqNum]).encode()
                 
                 packet = toByte(2) + length + toByte(seqNum) + payload
                 # packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
@@ -118,8 +121,22 @@ while True:
                 packet = AEScipher.encrypt(packet)
                 # Packet to send
                 unreliableSend(packet, sock, user, errRate)  
-                next_seqNum += 1
+                seqNum += 1
+                print('Received:', data)
+                # print("is ack number, ",data[1])  
+                print( "seq number, ",seqNum)
+            if seqNum == sendBase:
+                sendBase += 1
+            #     if sendBase == seqNum:
+            #         print("timer should be stopped")
+            #         sock.settimeout()
+            #     else:
+            #         print("timer should be started")
+            # if timeout():
+            #     print("start timer")
                 
+                
+
         pass
 
     else:
