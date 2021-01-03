@@ -75,6 +75,7 @@ file.close()
 
 status = "Handshake"
 sendBase = 0
+count = -1
 while True:
     data, user = sock.recvfrom(1024)
     
@@ -104,18 +105,21 @@ while True:
         status = "ACK"
 
     elif data[0] == 1:                                      # Packet type is ACK
-        # data = AEScipher.decrypt(data)
-        # data = unpad(data)
-        # packetType = data[0]
-        # ACKseqNum = data[1]
-        seqNum = data[1]
+        seqNum = data[1]                                #changes between 0 and 255
+        print("seqnum data[1] = ",seqNum)
         
         # next_seqNum = 0
         while True:
+            # if seqNum == 0:
+            #     count += 1
             if seqNum < (sendBase + N):
                 
                 pType = toByte(2)                                   # Packet type
-                length = toByte(len(Lines[seqNum]))            # Payload length
+                if seqNum == 0:
+                    count += 1
+                    # count += int((seqNum + 1) / 256)
+                # lines[seqnum] is starting from the beginning after seqnum gets 0 after 255
+                length = toByte(len(Lines[seqNum]))            # Payload length 
                 payload = (Lines[seqNum]).encode()
                 print("sent to client: ", seqNum, " ", Lines[seqNum])
                 packet = toByte(2) + length + toByte(seqNum) + payload
@@ -125,13 +129,22 @@ while True:
                 # Packet to send
                 unreliableSend(packet, sock, user, errRate)  
                 seqNum = (seqNum + 1) % 256
-                print('Received:', data)
+                
+                # seqNum += 1
+                
+                print("count, ", count)
                 # print("is ack number, ",data[1])  
                 print( "seq number, ",seqNum)
                 print("window sendbase, ",sendBase)
+            if seqNum-1 == numberOfPacket:
+                break 
+            # if (seqNum - 1) % 256 == 0:
+            #     count += 1
             if seqNum-1 == sendBase:
-                sendBase += 1
-                
+                sendBase = (sendBase + 1) % 256
+                # sendBase = (count*256) + sendBase
+                # sendBase += 1
+              
             # if seqNum == sendBase:
             #     sendBase += 1
             #     if sendBase == seqNum:
