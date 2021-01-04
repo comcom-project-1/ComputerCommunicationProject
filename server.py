@@ -72,58 +72,56 @@ numberOfPacket = len(Lines)
 #     print("Line{}: {}".format(count, line.strip())) 
 
 shouldIncreaseSeqNum = False
+lastpacket = b""
+
+# Handshake
+data, user = sock.recvfrom(1024)
+
+if data[0] == 0:                                                 # Packet type is Handshake
+    packetLength = data[1]
+    recievedFileName = data[2:2+len(filename)]
+    if(recievedFileName != filename):                            # Check if the file name is correct
+        sock.settimeout(None)
+    recievedPublicKey = data[2+len(filename):2+packetLength]
+    recievedPublicKey = RSA.import_key(recievedPublicKey)
+    rsaEncryptor = PKCS1_OAEP.new(recievedPublicKey)
+    pType = toByte(0)                                           # Packet type
+    length = toByte(len(sessionKey))                            # Payload length
+    packet = rsaEncryptor.encrypt(pType + length + sessionKey)
+    # Packet to send
+    unreliableSend(packet, sock, user, errRate)                 # Send response to client
+else:
+    print("CLIENT SENT WRONG PACKET")
+
+
+sendBase = 0
+nextseqNum = 0
 
 while True:
+
+    while nextseqNum - sendBase < N:
+        pType = toByte(2)
+        length = toByte(len(Lines[nextseqNum]))                 # Payload length
+        payload = (Lines[nextseqNum]).encode()
+        packet = pType + length + toByte(nextseqNum) + payload
+        packet = pad(packet)
+        packet = AEScipher.encrypt(packet)
+        unreliableSend(packet, sock, user, errRate)
+
+        nextseqNum += 1
+
     try:
         sock.settimeout(TIMEOUT)
         data, user = sock.recvfrom(1024)
-        try:
-            data = AEScipher.decrypt(data)
-            data = unpad(data)
-        except:
-            pass
+    
+        data = AEScipher.decrypt(data)
+        data = unpad(data)
 
-        print('Received:', data)
-        
-        if data[0] == 0:                                        # Packet type is Handshake
-            packetLength = data[1]
-            recievedFileName = data[2:2+len(filename)]
-            if(recievedFileName != filename):                   # Check if the file name is correct
-                sock.settimeout(None)
-            recievedPublicKey = data[2+len(filename):2+packetLength]
-            recievedPublicKey = RSA.import_key(recievedPublicKey)
-            rsaEncryptor = PKCS1_OAEP.new(recievedPublicKey)
-            pType = toByte(0)                                   # Packet type
-            length = toByte(len(sessionKey))                    # Payload length
-            packet = rsaEncryptor.encrypt(pType + length + sessionKey)
-            # Packet to send
-            unreliableSend(packet, sock, user, errRate)         # Send response to client
-            shouldIncreaseSeqNum = False
-
-        elif data[0] == 1:
-            seqNum = data[1]
+        if data[0] == 1:
+            if data[1] == sendBase:
+                sendBase = data[1] + 1
             
-            if shouldIncreaseSeqNum:
-                seqNum = (seqNum + 1) % 256
-            else:
-                shouldIncreaseSeqNum = True
-            
-            pType = toByte(2)                                   # Packet type
-            length = toByte(len(Lines[seqNum]))            # Payload length
-            payload = (Lines[seqNum]).encode()
-            print("Sent to client: ", seqNum, Lines[seqNum])
-            
-            packet = toByte(2) + length + toByte(seqNum) + payload
-            packet = pad(packet)
-            packet = AEScipher.encrypt(packet)
-            # Packet to send
-            
-            unreliableSend(packet, sock, user, errRate)
-
         else:
-            print("CLIENT SENT WRONG PACKET")
+            raise Exception("CLIENT SENT WRONG PACKET")
     except:
-        #bence burada paketi yeniden göndermeliyiz
-        #pseudocodeda if timeout dediği kısım burası
-        pass
-
+        nextseqNum = sendBase
