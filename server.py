@@ -107,15 +107,14 @@ while True:
             data = unpad(data)
 
             if data[0] == 1:
-                if data[1] == (sendBase % 256):
-                    break
+                exit(0)
         except:
             pass
 
     while nextseqNum < sendBase + N:
         if(nextseqNum < len(Lines)):
             pType = toByte(2)
-            length = toByte(len(Lines[nextseqNum]))                 # Payload length
+            length = toByte(len(Lines[nextseqNum].encode()))                 # Payload length
             payload = (Lines[nextseqNum]).encode()
             packet = pType + length + toByte(nextseqNum % 256) + payload
             packet = pad(packet)
