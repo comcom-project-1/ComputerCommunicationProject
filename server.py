@@ -65,107 +65,65 @@ print("Server is running...")
 file = open('crime-and-punishment.txt', encoding="utf-8") 
 Lines = file.readlines()
 numberOfPacket = len(Lines)  
-print(Lines[0])
 
-file.close()
 # count = 0
 # # Strips the newline character 
 # for line in Lines: 
 #     print("Line{}: {}".format(count, line.strip())) 
 
-status = "Handshake"
-
-lineNum = 0
-
+shouldIncreaseSeqNum = False
 
 while True:
-    data, user = sock.recvfrom(1024)
-    sendBase = 0
-    count = -1
-    if status == "ACK":
-        
-        data = AEScipher.decrypt(data)
-        data = unpad(data)
-        
-        # packetType = data[0]
-        # ACKseqNum = data[1]
+    try:
+        sock.settimeout(TIMEOUT)
+        data, user = sock.recvfrom(1024)
+        try:
+            data = AEScipher.decrypt(data)
+            data = unpad(data)
+        except:
+            pass
 
-    print('Received:', data)
-    
-    if data[0] == 0:                                        # Packet type is Handshake
-        packetLength = data[1]
-        recievedFileName = data[2:2+len(filename)]
-        if(recievedFileName != filename):                   # Check if the file name is correct
-            sock.settimeout()
-        recievedPublicKey = data[2+len(filename):2+packetLength]
-        recievedPublicKey = RSA.import_key(recievedPublicKey)
-        rsaEncryptor = PKCS1_OAEP.new(recievedPublicKey)
-        pType = toByte(0)                                   # Packet type
-        length = toByte(len(sessionKey))                    # Payload length
-        packet = rsaEncryptor.encrypt(pType + length + sessionKey)
-        # Packet to send
-        unreliableSend(packet, sock, user, errRate)         # Send response to client
-        status = "ACK"
-
-    elif data[0] == 1:                                      # Packet type is ACK
-        seqNum = data[1]                                #changes between 0 and 255
-        print("ı got a seq num, ", seqNum)
+        print('Received:', data)
         
-        # seqNum = 0
-        # next_seqNum = 0
-        while True:
-            # if seqNum == 0:
-            #     count += 1
-            if seqNum < (sendBase + N):
-                
-                pType = toByte(2)                                   # Packet type
-                # if seqNum == 0:
-                #     count += 1
-                    # count += int((seqNum + 1) / 256)
-                if (count * 256) + seqNum == numberOfPacket:
-                    print("whyyy")
-                    break
-                if seqNum == 0:
-                    count += 1
-                    print("count is increased by one, ", count)
-                
-                # lines[seqnum] is starting from the beginning after seqnum gets 0 after 255
-                length = toByte(len(Lines[(count * 256) + seqNum]))            # Payload length 
-                payload = (Lines[(count * 256) + seqNum]).encode()
-                print("sent to client: ", seqNum, " ", (count * 256) + seqNum, " ", Lines[(count * 256) + seqNum])
-                packet = toByte(2) + length + toByte(seqNum) + payload
-                # packet = rsaEncryptor.encrypt(pType + length + seqNum + Lines[next_seqNum])
-                packet = pad(packet)
-                packet = AEScipher.encrypt(packet)
-                # Packet to send
-                unreliableSend(packet, sock, user, errRate)  
+        if data[0] == 0:                                        # Packet type is Handshake
+            packetLength = data[1]
+            recievedFileName = data[2:2+len(filename)]
+            if(recievedFileName != filename):                   # Check if the file name is correct
+                sock.settimeout(None)
+            recievedPublicKey = data[2+len(filename):2+packetLength]
+            recievedPublicKey = RSA.import_key(recievedPublicKey)
+            rsaEncryptor = PKCS1_OAEP.new(recievedPublicKey)
+            pType = toByte(0)                                   # Packet type
+            length = toByte(len(sessionKey))                    # Payload length
+            packet = rsaEncryptor.encrypt(pType + length + sessionKey)
+            # Packet to send
+            unreliableSend(packet, sock, user, errRate)         # Send response to client
+            shouldIncreaseSeqNum = False
+
+        elif data[0] == 1:
+            seqNum = data[1]
+            
+            if shouldIncreaseSeqNum:
                 seqNum = (seqNum + 1) % 256
-                # seqNum += 1
-                lineNum += 1
-                
-            # if seqNum-1 == numberOfPacket:
-            #     break 
-            # if (seqNum - 1) % 256 == 0:
-            #     count += 1
-            if seqNum == sendBase:
-                # sendBase = (sendBase + 1) % 256
-                # sendBase = (count*256) + sendBase
-                sendBase += 1
-                print("base is increased by one, ", sendBase)
-              
-            # if seqNum == sendBase:
-            #     sendBase += 1
-            #     if sendBase == seqNum:
-            #         print("timer should be stopped")
-            #         sock.settimeout()
-            #     else:
-            #         print("timer should be started")
-            # if timeout():
-            #     print("start timer")
-                
-                
+            else:
+                shouldIncreaseSeqNum = True
+            
+            pType = toByte(2)                                   # Packet type
+            length = toByte(len(Lines[seqNum]))            # Payload length
+            payload = (Lines[seqNum]).encode()
+            print("Sent to client: ", seqNum, Lines[seqNum])
+            
+            packet = toByte(2) + length + toByte(seqNum) + payload
+            packet = pad(packet)
+            packet = AEScipher.encrypt(packet)
+            # Packet to send
+            
+            unreliableSend(packet, sock, user, errRate)
 
+        else:
+            print("CLIENT SENT WRONG PACKET")
+    except:
+        #bence burada paketi yeniden göndermeliyiz
+        #pseudocodeda if timeout dediği kısım burası
         pass
 
-    else:
-        print("CLIENT SENT WRONG PACKET")
