@@ -81,7 +81,7 @@ while True:
 
         else:
             data, user = sock.recvfrom(1024)
-            print('Received:', data)
+            #print('Received:', data)
             if status == "Handshaking":
                 data = rsaDecryptor.decrypt(data)
                 if data[0] == 0:
@@ -123,7 +123,8 @@ while True:
                         nextSeqNum = (nextSeqNum + 1) % 256
                         
                     else:
-                        print("Discarding packet", sequenceNumber, "expected", nextSeqNum)
+                        #print("Discarding packet", sequenceNumber, "expected", nextSeqNum)
+                        pass
 
                 elif packetType == 3:
                     print("Transmission Complete")
@@ -137,6 +138,6 @@ while True:
                     print("SERVER SENT WRONG PACKET")
                     exit(1)
     except Exception as ex:         
-        print(ex)
+        #print(ex)
         if status == "Handshaking" or status == "Ending":
             unreliableSend(packet, sock, user, errRate)

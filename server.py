@@ -35,7 +35,7 @@ status = "Start"
 
 errRate = 10 # Average Error rate of the unreliable channel
 TIMEOUT = 0.0001 # Timeout value
-N = 10 # Go-back-N N
+N = 4 # Go-back-N N
 
 
 filename = b'crime-and-punishment.txt'
@@ -89,19 +89,41 @@ else:
 sendBase = 0
 nextseqNum = 0
 
+isFilefinished = False
+
 while True:
 
-    while nextseqNum < sendBase + N:
-        pType = toByte(2)
-        length = toByte(len(Lines[nextseqNum]))                 # Payload length
-        payload = (Lines[nextseqNum]).encode()
-        packet = pType + length + toByte(nextseqNum % 256) + payload
-        packet = pad(packet)
-        packet = AEScipher.encrypt(packet)
-        unreliableSend(packet, sock, user, errRate)
-        print("sent: ", nextseqNum, Lines[nextseqNum])
+    if isFilefinished:
+        try:
+            packet = toByte(3) + toByte(sendBase)
+            packet = pad(packet)
+            packet = AEScipher.encrypt(packet)
+            unreliableSend(packet, sock, user, errRate)
+        
+            sock.settimeout(TIMEOUT)
+            data, user = sock.recvfrom(1024)
+        
+            data = AEScipher.decrypt(data)
+            data = unpad(data)
 
-        nextseqNum += 1
+            if data[0] == 1:
+                if data[1] == (sendBase % 256):
+                    break
+        except:
+            pass
+
+    while nextseqNum < sendBase + N:
+        if(nextseqNum < len(Lines)):
+            pType = toByte(2)
+            length = toByte(len(Lines[nextseqNum]))                 # Payload length
+            payload = (Lines[nextseqNum]).encode()
+            packet = pType + length + toByte(nextseqNum % 256) + payload
+            packet = pad(packet)
+            packet = AEScipher.encrypt(packet)
+            unreliableSend(packet, sock, user, errRate)
+            print("sent: ", nextseqNum, Lines[nextseqNum])
+
+            nextseqNum += 1
 
     try:
         sock.settimeout(TIMEOUT)
@@ -113,8 +135,13 @@ while True:
         if data[0] == 1:
             if data[1] == (sendBase % 256):
                 sendBase += 1
-            
+                
         else:
             raise Exception("CLIENT SENT WRONG PACKET")
+
+        if sendBase == len(Lines):
+            isFilefinished = True
+            
+                
     except:
         nextseqNum = sendBase
