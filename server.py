@@ -66,14 +66,6 @@ file = open('crime-and-punishment.txt', encoding="utf-8")
 Lines = file.readlines()
 numberOfPacket = len(Lines)  
 
-# count = 0
-# # Strips the newline character 
-# for line in Lines: 
-#     print("Line{}: {}".format(count, line.strip())) 
-
-shouldIncreaseSeqNum = False
-lastpacket = b""
-
 # Handshake
 data, user = sock.recvfrom(1024)
 
@@ -99,14 +91,15 @@ nextseqNum = 0
 
 while True:
 
-    while nextseqNum - sendBase < N:
+    while nextseqNum < sendBase + N:
         pType = toByte(2)
         length = toByte(len(Lines[nextseqNum]))                 # Payload length
         payload = (Lines[nextseqNum]).encode()
-        packet = pType + length + toByte(nextseqNum) + payload
+        packet = pType + length + toByte(nextseqNum % 256) + payload
         packet = pad(packet)
         packet = AEScipher.encrypt(packet)
         unreliableSend(packet, sock, user, errRate)
+        print("sent: ", nextseqNum, Lines[nextseqNum])
 
         nextseqNum += 1
 
@@ -118,8 +111,8 @@ while True:
         data = unpad(data)
 
         if data[0] == 1:
-            if data[1] == sendBase:
-                sendBase = data[1] + 1
+            if data[1] == (sendBase % 256):
+                sendBase += 1
             
         else:
             raise Exception("CLIENT SENT WRONG PACKET")
