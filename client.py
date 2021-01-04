@@ -26,8 +26,8 @@ def unreliableSend(packet, sock, user, errRate):
     if errRate < rd.randint(0,100):
         sock.sendto(packet, user)
         
-print(toByte(4),toByte(160), toByte(250))
-print(fromByte(toByte(4)),fromByte(toByte(160)),fromByte(toByte(250)))
+# print(toByte(4),toByte(160), toByte(250))
+# print(fromByte(toByte(4)),fromByte(toByte(160)),fromByte(toByte(250)))
 
 HOST = '127.0.0.1'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
@@ -45,8 +45,8 @@ secretWord = b"This word is secret"                         # The word that will
 AEScipher = AES.new(passwd, AES.MODE_ECB)                   # Create AES cipher with given key. 
 phrase= AEScipher.encrypt(pad(secretWord))                  # The words that will be encrypted
                                                             # Must have length multiple of 16.
-print(phrase)
-print(AEScipher.decrypt(phrase).decode('utf-8'))
+#print(phrase)
+#print(AEScipher.decrypt(phrase).decode('utf-8'))
 
 rsaKey = RSA.generate(1024)                                 # Generate RSA public and Private keys
 private_key = rsaKey.export_key()                           # Export private key.
@@ -60,7 +60,7 @@ rsaDecryptor = PKCS1_OAEP.new(privateKey)                   # Which have differe
 
 enc = rsaEncryptor.encrypt(secretWord)#.encode('utf-8'))
 dec = rsaDecryptor.decrypt(enc)
-print(enc, dec)
+#print(enc, dec)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)     # Create UDP socket
 sock.settimeout(TIMEOUT)                                    # If no packets came after TIMEOUT
@@ -70,8 +70,8 @@ while True:
         if status == "Start":
             # Create payload
             length = toByte(len(filename) + len(public_key))
-            print(public_key)
-            print(len(filename) + len(public_key), length)  
+            #print(public_key)
+            #print(len(filename) + len(public_key), length)  
             pType = toByte(0)
             packet = pType + length
             packet += filename + public_key
@@ -87,12 +87,12 @@ while True:
                 if data[0] == 0:
                     packetLength = data[1]
                     sessionKey = data[2:2+packetLength]
-                    print("sessionKey =", sessionKey, packetLength)
+                    #print("sessionKey =", sessionKey, packetLength)
 
                     # ACK segment 00
                     packet = toByte(1) + toByte(0) 
+                    print("sent: ", packet)
                     packet = pad(packet)
-                    print(packet)
                     #print(bytes(packet))
                     AEScipher = AES.new(sessionKey, AES.MODE_ECB)
                     packet = AEScipher.encrypt(packet)
@@ -124,7 +124,7 @@ while True:
                         
                     else:
                         #print("Discarding packet", sequenceNumber, "expected", nextSeqNum)
-                        pass # if it is not expected discard the packet
+                        pass
 
                 elif packetType == 3:
                     print("Transmission Complete")
@@ -141,4 +141,3 @@ while True:
         #print(ex)
         if status == "Handshaking" or status == "Ending":
             unreliableSend(packet, sock, user, errRate)
-
